@@ -7,6 +7,11 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
     outDir: 'dist',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+      },
+    },
     sourcemap: false,
     minify: 'terser',
     rollupOptions: {
