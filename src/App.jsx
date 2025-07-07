@@ -16,59 +16,62 @@ import AdminManagement from "./pages/admin/AdminManagement";
 import Settings from "./pages/admin/Settings";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import RoleProtectedRoute from "./components/auth/RoleProtectedRoute";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 
 function App() {
   return (
-    <AuthProvider>
-      <NotificationProvider>
-        <Router>
-          <div className="min-h-screen bg-gray-50">
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 5000,
-                style: {
-                  background: "#363636",
-                  color: "#fff",
-                },
-              }}
-            />
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/login" element={<AdminLogin />} />
+    <ErrorBoundary>
+      <AuthProvider>
+        <NotificationProvider>
+          <Router>
+            <div className="min-h-screen bg-gray-50">
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 5000,
+                  style: {
+                    background: "#363636",
+                    color: "#fff",
+                  },
+                }}
+              />
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/login" element={<AdminLogin />} />
 
-              {/* Protected Routes */}
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Layout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Dashboard />} />
-                <Route path="users" element={<UserManagement />} />
-                <Route path="users/profile" element={<UserProfile />} />
-                <Route path="bans" element={<BanManagement />} />
+                {/* Protected Routes */}
                 <Route
-                  path="admins"
+                  path="/"
                   element={
-                    <RoleProtectedRoute allowedRoles={["super_admin"]}>
-                      <AdminManagement />
-                    </RoleProtectedRoute>
+                    <ProtectedRoute>
+                      <Layout />
+                    </ProtectedRoute>
                   }
-                />
-                {/* <Route path="users/:userId" element={<UserProfile />} /> */}
-                <Route path="topup" element={<TopupManagement />} />
-                <Route path="finance" element={<FinanceManagement />} />
-                <Route path="transactions" element={<TransactionHistory />} />
-                <Route path="settings" element={<Settings />} />
-              </Route>
-            </Routes>
-          </div>
-        </Router>
-      </NotificationProvider>
-    </AuthProvider>
+                >
+                  <Route index element={<Dashboard />} />
+                  <Route path="users" element={<UserManagement />} />
+                  <Route path="users/profile" element={<UserProfile />} />
+                  <Route path="bans" element={<BanManagement />} />
+                  <Route
+                    path="admins"
+                    element={
+                      <RoleProtectedRoute allowedRoles={["super_admin"]}>
+                        <AdminManagement />
+                      </RoleProtectedRoute>
+                    }
+                  />
+                  {/* <Route path="users/:userId" element={<UserProfile />} /> */}
+                  <Route path="topup" element={<TopupManagement />} />
+                  <Route path="finance" element={<FinanceManagement />} />
+                  <Route path="transactions" element={<TransactionHistory />} />
+                  <Route path="settings" element={<Settings />} />
+                </Route>
+              </Routes>
+            </div>
+          </Router>
+        </NotificationProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

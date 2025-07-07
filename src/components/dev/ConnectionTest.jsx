@@ -9,7 +9,7 @@ const ConnectionTest = () => {
     setTestResult('Testing connection...');
 
     try {
-      const response = await fetch('http://localhost:5000/health');
+      const response = await fetch('https://nextgame.onrender.com/health');
       const data = await response.json();
       setTestResult(`✅ Connection successful! Server response: ${JSON.stringify(data)}`);
     } catch (error) {
@@ -25,7 +25,7 @@ const ConnectionTest = () => {
     setTestResult('Testing admin login...');
 
     try {
-      const response = await fetch('http://localhost:5000/admin/login', {
+      const response = await fetch('https://nextgame.onrender.com/admin/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

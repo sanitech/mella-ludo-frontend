@@ -1,10 +1,10 @@
 import axios from "axios";
-
-const API_BASE_URL = "http://localhost:5000";
+import config from "../config/environment.js";
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: config.api.baseURL,
+  timeout: config.api.timeout,
   headers: {
     "Content-Type": "application/json",
   },
@@ -12,9 +12,12 @@ const api = axios.create({
 
 // Add token to requests if available
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  // Only access localStorage in browser environment
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
@@ -25,6 +28,7 @@ api.interceptors.response.use(
   (error) => {
     const originalRequest = error.config;
     const isLogin = originalRequest && originalRequest.url && originalRequest.url.includes("/admin/login");
+    
     // Only redirect if not on login page and not a login request
     if (
       error.response?.status === 401 &&
@@ -35,6 +39,12 @@ api.interceptors.response.use(
       localStorage.removeItem("token");
       window.location.href = "/login";
     }
+    
+    // Log errors in development
+    if (config.app.isDevelopment) {
+      console.error('API Error:', error);
+    }
+    
     return Promise.reject(error);
   }
 );

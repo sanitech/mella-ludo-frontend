@@ -9,7 +9,9 @@
     "build:prod": "vite build --mode production",
     "preview": "vite preview",
     "lint": "eslint .",
-    "serve": "vite preview --port 3000"
+    "lint:fix": "eslint . --fix",
+    "serve": "vite preview --port 3000",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
@@ -34,5 +36,9 @@
     "globals": "^16.2.0",
     "terser": "^5.43.1",
     "vite": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }
