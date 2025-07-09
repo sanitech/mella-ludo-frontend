@@ -67,5 +67,16 @@ export const financeService = {
       throw parseApiError(error);
     }
   },
+
+  async getFinanceStatistics(period = "all") {
+    try {
+      const response = await api.get("/finance/statistics", { 
+        params: { period } 
+      });
+      return response.data;
+    } catch (error) {
+      throw parseApiError(error);
+    }
+  },
 };
  

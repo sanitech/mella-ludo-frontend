@@ -241,12 +241,7 @@ const Dashboard = () => {
                 <p className="text-2xl font-semibold text-gray-900">{card.value}</p>
               </div>
             </div>
-            <div className="mt-4">
-              <div className="flex items-center">
-                <span className="text-sm text-green-600 font-medium">{card.change}</span>
-                <span className="text-sm text-gray-500 ml-2">{card.description}</span>
-              </div>
-            </div>
+            {/* Removed percentage and description from the bottom of the card */}
           </div>
         ))}
       </div>

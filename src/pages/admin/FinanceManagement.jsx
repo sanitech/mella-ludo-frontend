@@ -23,6 +23,15 @@ import {
   Info,
   Shield,
   Zap,
+  Grid3X3,
+  List,
+  BarChart3,
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
+  Activity,
+  Target,
+  Award,
+  AlertTriangle,
 } from "lucide-react";
 
 const FinanceManagement = () => {
@@ -37,7 +46,10 @@ const FinanceManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [processingAction, setProcessingAction] = useState(null);
+  const [viewMode, setViewMode] = useState("card"); // "card" or "table"
+  const [statistics, setStatistics] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [periodFilter, setPeriodFilter] = useState("all");
 
   const fetchRecords = async () => {
     setLoading(true);
@@ -58,29 +70,23 @@ const FinanceManagement = () => {
     }
   };
 
-  useEffect(() => {
-    fetchRecords();
-    // eslint-disable-next-line
-  }, [page, statusFilter, typeFilter]);
-
-  const handleAction = async (id, status) => {
-    setProcessingAction(id);
+  const fetchStatistics = async () => {
+    setStatsLoading(true);
     try {
-      await financeService.updateRequestStatus(
-        id,
-        status,
-        admin?.username || ""
-      );
-      toast.success(`Request ${status.toLowerCase()} successfully!`);
-      fetchRecords();
-      setSelectedRecord(null);
-      setShowDetails(false);
+      const stats = await financeService.getFinanceStatistics(periodFilter);
+      setStatistics(stats);
     } catch (e) {
-      toast.error(e.message);
+      toast.error("Failed to load statistics");
     } finally {
-      setProcessingAction(null);
+      setStatsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchRecords();
+    fetchStatistics();
+    // eslint-disable-next-line
+  }, [page, statusFilter, typeFilter, periodFilter]);
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -153,6 +159,12 @@ const FinanceManagement = () => {
       }`}>
         {getTypeIcon(type)}
         <span className="ml-1 capitalize">{type}</span>
+        {isDeposit && (
+          <span className="ml-1 inline-flex items-center">
+            <Zap className="w-3 h-3" />
+            <span className="text-xs ml-1">Auto</span>
+          </span>
+        )}
       </span>
     );
   };
@@ -187,12 +199,26 @@ const FinanceManagement = () => {
     setPage(1);
   };
 
-  const stats = {
+  const getPeriodLabel = (period) => {
+    switch (period) {
+      case "today": return "Today";
+      case "week": return "This Week";
+      case "month": return "This Month";
+      case "quarter": return "This Quarter";
+      case "year": return "This Year";
+      default: return "All Time";
+    }
+  };
+
+  // Local stats for current page
+  const localStats = {
     total: records.length,
     pending: records.filter((r) => r.status === "PENDING_APPROVAL").length,
     approved: records.filter((r) => r.status === "APPROVED" || r.status === "COMPLETED").length,
     rejected: records.filter((r) => r.status === "REJECTED" || r.status === "DECLINED").length,
     totalAmount: records.reduce((sum, r) => sum + r.amount, 0),
+    deposits: records.filter((r) => r.type === "deposit").length,
+    withdrawals: records.filter((r) => r.type === "withdrawal").length,
   };
 
   return (
@@ -205,12 +231,15 @@ const FinanceManagement = () => {
             Finance Management
           </h1>
           <p className="text-gray-600 mt-1">
-            Review and process deposit/withdrawal requests with real-time updates
+            Monitor deposits and withdrawals - all transactions are processed automatically
           </p>
         </div>
         <div className="flex items-center space-x-3">
           <button
-            onClick={fetchRecords}
+            onClick={() => {
+              fetchRecords();
+              fetchStatistics();
+            }}
             className="btn-primary flex items-center space-x-2"
             disabled={refreshing}
           >
@@ -222,54 +251,81 @@ const FinanceManagement = () => {
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="card bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90">Total Requests</p>
-              <p className="text-2xl font-bold">{stats.total}</p>
-            </div>
-            <DollarSign className="w-8 h-8 opacity-80" />
+      {/* Period Filter */}
+      <div className="card">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <BarChart3 className="w-4 h-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">Statistics Period:</span>
           </div>
-        </div>
-        <div className="card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90">Pending</p>
-              <p className="text-2xl font-bold">{stats.pending}</p>
-            </div>
-            <Clock className="w-8 h-8 opacity-80" />
-          </div>
-        </div>
-        <div className="card bg-gradient-to-br from-green-500 to-green-600 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90">Approved</p>
-              <p className="text-2xl font-bold">{stats.approved}</p>
-            </div>
-            <Check className="w-8 h-8 opacity-80" />
-          </div>
-        </div>
-        <div className="card bg-gradient-to-br from-red-500 to-red-600 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90">Rejected</p>
-              <p className="text-2xl font-bold">{stats.rejected}</p>
-            </div>
-            <X className="w-8 h-8 opacity-80" />
-          </div>
-        </div>
-        <div className="card bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90">Total Amount</p>
-              <p className="text-lg font-bold">{formatCurrency(stats.totalAmount)}</p>
-            </div>
-            <Shield className="w-8 h-8 opacity-80" />
-          </div>
+          <select
+            className="input-field w-44"
+            value={periodFilter}
+            onChange={(e) => setPeriodFilter(e.target.value)}
+          >
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="quarter">This Quarter</option>
+            <option value="year">This Year</option>
+          </select>
         </div>
       </div>
+
+      {/* Dashboard Statistics */}
+      {statsLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="card animate-pulse">
+              <div className="h-20 bg-gray-200 rounded"></div>
+            </div>
+          ))}
+        </div>
+      ) : statistics ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="card bg-gradient-to-br from-green-500 to-green-600">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-900 font-semibold">Completed Deposits</p>
+                <p className="text-2xl font-bold text-gray-900">{statistics.status.completedDeposits || 0}</p>
+                <p className="text-xs text-gray-800">Successfully processed</p>
+              </div>
+              <TrendingUpIcon className="w-8 h-8 text-green-400" />
+            </div>
+          </div>
+          <div className="card bg-gradient-to-br from-blue-500 to-blue-600">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-900 font-semibold">Completed Withdrawals</p>
+                <p className="text-2xl font-bold text-gray-900">{statistics.status.completedWithdrawals || 0}</p>
+                <p className="text-xs text-gray-800">Successfully processed</p>
+              </div>
+              <TrendingDownIcon className="w-8 h-8 text-blue-400" />
+            </div>
+          </div>
+          <div className="card bg-gradient-to-br from-purple-500 to-purple-600">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-900 font-semibold">Total Users</p>
+                <p className="text-2xl font-bold text-gray-900">{statistics.users?.totalUsers || 0}</p>
+                <p className="text-xs text-gray-800">All registered users</p>
+              </div>
+              <User className="w-8 h-8 text-purple-400" />
+            </div>
+          </div>
+          <div className="card bg-gradient-to-br from-orange-500 to-orange-600">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-900 font-semibold">Active Users Today</p>
+                <p className="text-2xl font-bold text-gray-900">{statistics.users?.activeUsersToday || 0}</p>
+                <p className="text-xs text-gray-800">Users active today</p>
+              </div>
+              <Activity className="w-8 h-8 text-orange-400" />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Filters and Search */}
       <div className="card">
@@ -285,7 +341,7 @@ const FinanceManagement = () => {
               <input
                 type="text"
                 placeholder="Search by username or transaction ID..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all"
+                className="w-56 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -294,7 +350,7 @@ const FinanceManagement = () => {
           </div>
 
           <select
-            className="input-field w-40"
+            className="input-field w-44"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -308,7 +364,7 @@ const FinanceManagement = () => {
           </select>
 
           <select
-            className="input-field w-40"
+            className="input-field w-44"
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
           >
@@ -335,181 +391,310 @@ const FinanceManagement = () => {
         </div>
       </div>
 
-      {/* Records Table */}
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  User Details
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Transaction
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Date & Time
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <RefreshCw className="w-8 h-8 animate-spin text-purple-600 mb-3" />
-                      <span className="text-gray-500 font-medium">Loading finance requests...</span>
-                      <span className="text-sm text-gray-400 mt-1">Please wait while we fetch the latest data</span>
+      {/* View Toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <span className="text-sm font-medium text-gray-700">View Mode:</span>
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode("card")}
+              className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                viewMode === "card"
+                  ? "bg-white text-purple-600 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <Grid3X3 className="w-4 h-4" />
+              <span>Card View</span>
+            </button>
+            <button
+              onClick={() => setViewMode("table")}
+              className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                viewMode === "table"
+                  ? "bg-white text-purple-600 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <List className="w-4 h-4" />
+              <span>Table View</span>
+            </button>
+          </div>
+        </div>
+        <div className="text-sm text-gray-500">
+          {records.length} {records.length === 1 ? 'record' : 'records'} found
+        </div>
+      </div>
+
+      {/* Card View */}
+      {viewMode === "card" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {loading ? (
+            <div className="col-span-full flex flex-col items-center justify-center py-12">
+              <RefreshCw className="w-8 h-8 animate-spin text-purple-600 mb-3" />
+              <span className="text-gray-500 font-medium">Loading finance requests...</span>
+              <span className="text-sm text-gray-400 mt-1">Please wait while we fetch the latest data</span>
+            </div>
+          ) : records.length === 0 ? (
+            <div className="col-span-full text-center py-12">
+              <DollarSign className="mx-auto w-16 h-16 text-gray-300 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No finance requests found
+              </h3>
+              <p className="text-gray-500 mb-4">
+                {statusFilter !== "all" || typeFilter !== "all" || searchTerm
+                  ? "Try adjusting your filters or search terms."
+                  : "There are currently no finance requests to review."}
+              </p>
+              {(statusFilter !== "all" || typeFilter !== "all" || searchTerm) && (
+                <button
+                  onClick={clearFilters}
+                  className="btn-secondary"
+                >
+                  Clear All Filters
+                </button>
+              )}
+            </div>
+          ) : (
+            records.map((record) => (
+              <div
+                key={record.transactionId}
+                className="card hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-purple-500"
+                onClick={() => {
+                  setSelectedRecord(record);
+                  setShowDetails(true);
+                }}
+              >
+                {/* Card Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center">
+                      <User className="w-5 h-5 text-purple-600" />
                     </div>
-                  </td>
-                </tr>
-              ) : records.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
-                    <div className="text-center">
-                      <DollarSign className="mx-auto w-16 h-16 text-gray-300 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        No finance requests found
+                    <div>
+                      <h3 className="font-semibold text-gray-900">
+                        {record.username || "Unknown User"}
                       </h3>
-                      <p className="text-gray-500 mb-4">
-                        {statusFilter !== "all" || typeFilter !== "all" || searchTerm
-                          ? "Try adjusting your filters or search terms."
-                          : "There are currently no finance requests to review."}
-                      </p>
-                      {(statusFilter !== "all" || typeFilter !== "all" || searchTerm) && (
-                        <button
-                          onClick={clearFilters}
-                          className="btn-secondary"
-                        >
-                          Clear All Filters
-                        </button>
-                      )}
+                      <p className="text-sm text-gray-500 font-mono">{record.chatId}</p>
                     </div>
-                  </td>
+                  </div>
+                  {getTypeBadge(record.type)}
+                </div>
+
+                {/* Card Content */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Amount:</span>
+                    <span className="text-lg font-bold text-gray-900">
+                      {formatCurrency(record.amount)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Status:</span>
+                    {getStatusBadge(record.status)}
+                  </div>
+
+                  {record.paymentMethod && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Payment:</span>
+                      <span className="text-sm text-gray-900 flex items-center">
+                        <CreditCard className="w-3 h-3 mr-1" />
+                        {record.paymentMethod}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Date:</span>
+                    <span className="text-sm text-gray-900">
+                      {formatDate(record.createdAt)}
+                    </span>
+                  </div>
+
+                  {record.balanceAfter && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Balance After:</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {formatCurrency(record.balanceAfter)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Card Actions */}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedRecord(record);
+                        setShowDetails(true);
+                      }}
+                      className="btn-secondary btn-sm flex items-center space-x-1"
+                    >
+                      <Eye className="w-3 h-3" />
+                      <span>Details</span>
+                    </button>
+
+                    {/* Approve/reject buttons removed - transactions are processed automatically */}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Table View */}
+      {viewMode === "table" && (
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    User Details
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Transaction
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Amount
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Date & Time
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ) : (
-                records.map((record) => (
-                  <tr
-                    key={record.transactionId}
-                    className="hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => {
-                      setSelectedRecord(record);
-                      setShowDetails(true);
-                    }}
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center">
-                          <User className="w-5 h-5 text-purple-600" />
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-semibold text-gray-900">
-                            {record.username || "Unknown User"}
-                          </div>
-                          <div className="text-sm text-gray-500 flex items-center">
-                            <span className="font-mono text-xs">{record.chatId}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          {getTypeBadge(record.type)}
-                        </div>
-                        <div className="text-xs text-gray-500 font-mono">
-                          ID: {record.transactionId}
-                        </div>
-                        {record.paymentMethod && (
-                          <div className="text-xs text-gray-500 flex items-center">
-                            <CreditCard className="w-3 h-3 mr-1" />
-                            {record.paymentMethod}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-lg font-bold text-gray-900">
-                        {formatCurrency(record.amount)}
-                      </div>
-                      {record.balanceAfter && (
-                        <div className="text-xs text-gray-500">
-                          Balance: {formatCurrency(record.balanceAfter)}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {getStatusBadge(record.status)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        {formatDate(record.createdAt)}
-                      </div>
-                      <div className="text-xs text-gray-500 flex items-center mt-1">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        {new Date(record.createdAt).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2">
-                        {record.status === "PENDING_APPROVAL" && (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAction(record.transactionId, "APPROVED");
-                              }}
-                              disabled={processingAction === record.transactionId}
-                              className="btn-success btn-sm flex items-center space-x-1"
-                              title="Approve Request"
-                            >
-                              <Check className="w-3 h-3" />
-                              <span>Approve</span>
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAction(record.transactionId, "REJECTED");
-                              }}
-                              disabled={processingAction === record.transactionId}
-                              className="btn-danger btn-sm flex items-center space-x-1"
-                              title="Reject Request"
-                            >
-                              <X className="w-3 h-3" />
-                              <span>Reject</span>
-                            </button>
-                          </>
-                        )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedRecord(record);
-                            setShowDetails(true);
-                          }}
-                          className="btn-secondary btn-sm flex items-center space-x-1"
-                          title="View Details"
-                        >
-                          <Eye className="w-3 h-3" />
-                          <span>Details</span>
-                        </button>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center">
+                        <RefreshCw className="w-8 h-8 animate-spin text-purple-600 mb-3" />
+                        <span className="text-gray-500 font-medium">Loading finance requests...</span>
+                        <span className="text-sm text-gray-400 mt-1">Please wait while we fetch the latest data</span>
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : records.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <div className="text-center">
+                        <DollarSign className="mx-auto w-16 h-16 text-gray-300 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          No finance requests found
+                        </h3>
+                        <p className="text-gray-500 mb-4">
+                          {statusFilter !== "all" || typeFilter !== "all" || searchTerm
+                            ? "Try adjusting your filters or search terms."
+                            : "There are currently no finance requests to review."}
+                        </p>
+                        {(statusFilter !== "all" || typeFilter !== "all" || searchTerm) && (
+                          <button
+                            onClick={clearFilters}
+                            className="btn-secondary"
+                          >
+                            Clear All Filters
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  records.map((record) => (
+                    <tr
+                      key={record.transactionId}
+                      className="hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setSelectedRecord(record);
+                        setShowDetails(true);
+                      }}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center">
+                            <User className="w-5 h-5 text-purple-600" />
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-semibold text-gray-900">
+                              {record.username || "Unknown User"}
+                            </div>
+                            <div className="text-sm text-gray-500 flex items-center">
+                              <span className="font-mono text-xs">{record.chatId}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            {getTypeBadge(record.type)}
+                          </div>
+                          <div className="text-xs text-gray-500 font-mono">
+                            ID: {record.transactionId}
+                          </div>
+                          {record.paymentMethod && (
+                            <div className="text-xs text-gray-500 flex items-center">
+                              <CreditCard className="w-3 h-3 mr-1" />
+                              {record.paymentMethod}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-lg font-bold text-gray-900">
+                          {formatCurrency(record.amount)}
+                        </div>
+                        {record.balanceAfter && (
+                          <div className="text-xs text-gray-500">
+                            Balance: {formatCurrency(record.balanceAfter)}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {getStatusBadge(record.status)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">
+                          {formatDate(record.createdAt)}
+                        </div>
+                        <div className="text-xs text-gray-500 flex items-center mt-1">
+                          <Calendar className="w-3 h-3 mr-1" />
+                          {new Date(record.createdAt).toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-2">
+                          {/* Approve/reject buttons removed - transactions are processed automatically */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedRecord(record);
+                              setShowDetails(true);
+                            }}
+                            className="btn-secondary btn-sm flex items-center space-x-1"
+                            title="View Details"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>Details</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
@@ -638,36 +823,29 @@ const FinanceManagement = () => {
                   )}
                   {selectedRecord.approvedByUsername && (
                     <div>
-                      <label className="text-xs text-gray-500">Approved By</label>
-                      <p className="text-sm">{selectedRecord.approvedByUsername}</p>
+                      <label className="text-xs text-gray-500">
+                        {selectedRecord.approvedByUsername === "AUTO_APPROVED" ? "Processed By" : "Approved By"}
+                      </label>
+                      <p className="text-sm">
+                        {selectedRecord.approvedByUsername === "AUTO_APPROVED" ? "System (Auto)" : selectedRecord.approvedByUsername}
+                      </p>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Actions */}
-              {selectedRecord.status === "PENDING_APPROVAL" && (
-                <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
-                  <button
-                    onClick={() => {
-                      handleAction(selectedRecord.transactionId, "REJECTED");
-                    }}
-                    disabled={processingAction === selectedRecord.transactionId}
-                    className="btn-danger flex items-center space-x-2"
-                  >
-                    <X className="w-4 h-4" />
-                    <span>Reject Request</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleAction(selectedRecord.transactionId, "APPROVED");
-                    }}
-                    disabled={processingAction === selectedRecord.transactionId}
-                    className="btn-success flex items-center space-x-2"
-                  >
-                    <Check className="w-4 h-4" />
-                    <span>Approve Request</span>
-                  </button>
+              {/* Approve/reject buttons removed - transactions are processed automatically */}
+
+              {/* Info for deposits */}
+              {selectedRecord.type === "deposit" && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <Zap className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-green-800">
+                      <p className="font-medium mb-1">Automatic Processing:</p>
+                      <p>This deposit was automatically completed by the system. No admin approval was required.</p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

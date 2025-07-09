@@ -306,7 +306,7 @@ const UserManagement = () => {
               <input
                 type="text"
                 placeholder="Search users by username, name, chat ID, or phone..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all"
+                className="w-56 px-3 py-2 border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleSearch()}
@@ -314,7 +314,7 @@ const UserManagement = () => {
             </div>
           </div>
           <select
-            className="input-field w-48"
+            className="input-field w-44"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >

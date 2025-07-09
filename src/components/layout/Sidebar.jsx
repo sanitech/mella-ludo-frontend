@@ -23,12 +23,12 @@ const Sidebar = ({ open, setOpen }) => {
     { name: "Ban Management", href: "/bans", icon: Shield },
     { name: "Top-up Management", href: "/topup", icon: CreditCard },
     { name: "Finance Management", href: "/finance", icon: DollarSign },
-    { name: "Transaction History", href: "/transactions", icon: BarChart3 },
+    { name: "Game Transactions", href: "/transactions", icon: Gamepad2 },
     { name: "Settings", href: "/settings", icon: Settings },
     // Only show admin management for super_admin users
-    ...(admin?.role === "super_admin"
-      ? [{ name: "Admin Management", href: "/admins", icon: UserCog }]
-      : []),
+    // ...(admin?.role === "super_admin"
+    //   ? [{ name: "Admin Management", href: "/admins", icon: UserCog }]
+    //   : []),
   ];
 
   return (

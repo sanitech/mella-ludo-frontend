@@ -73,4 +73,33 @@ export const transactionService = {
       throw parseApiError(error);
     }
   },
+
+  async getTransactionStatistics(period = "all") {
+    try {
+      const response = await api.get("/transaction/statistics", { 
+        params: { period } 
+      });
+      return response.data;
+    } catch (error) {
+      throw parseApiError(error);
+    }
+  },
+
+  async getGameTransactions(params) {
+    try {
+      const response = await api.get("/transaction/game", { params });
+      return response.data;
+    } catch (error) {
+      throw parseApiError(error);
+    }
+  },
+
+  async rollbackTransaction(transactionId, rollbackData) {
+    try {
+      const response = await api.post(`/transaction/rollback/${transactionId}`, rollbackData);
+      return response.data;
+    } catch (error) {
+      throw parseApiError(error);
+    }
+  },
 }; 

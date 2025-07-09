@@ -46,5 +46,45 @@ export const settingsService = {
       throw parseApiError(error);
     }
   },
+
+  async changePassword(currentPassword, newPassword, confirmNewPassword) {
+    try {
+      const response = await api.post("/admin/change-password", {
+        currentPassword,
+        newPassword,
+        confirmNewPassword,
+      });
+      return response.data;
+    } catch (error) {
+      throw parseApiError(error);
+    }
+  },
+
+  async listSessions() {
+    try {
+      const response = await api.get("/admin/sessions");
+      return response.data.sessions;
+    } catch (error) {
+      throw parseApiError(error);
+    }
+  },
+
+  async logoutOtherSessions() {
+    try {
+      const response = await api.post("/admin/logout-others");
+      return response.data;
+    } catch (error) {
+      throw parseApiError(error);
+    }
+  },
+
+  async logoutAllSessions() {
+    try {
+      const response = await api.post("/admin/logout-all");
+      return response.data;
+    } catch (error) {
+      throw parseApiError(error);
+    }
+  },
 };
  
